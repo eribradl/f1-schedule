@@ -6,5 +6,6 @@ module.exports = {
         .use('raw-loader')
         .loader('raw-loader')
         .end()
-    }
+    },
+    publicPath: process.env.NODE_ENV === "production" ? "/f1-schedule/" : "/",
   }

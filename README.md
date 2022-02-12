@@ -1,5 +1,4 @@
-# my-first-weather-app
-
+# f1-schedule
 ## Project setup
 ```
 npm install
