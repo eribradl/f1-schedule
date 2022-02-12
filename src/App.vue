@@ -102,8 +102,12 @@ export default {
         country = 'United States';
       } else if (country == 'UAE') {
         country = 'United Arab Emirates';
-      };
+      }
       this.setGeneric('countryInfo', this.allCountries[country]);
+      if (country == 'Saudi Arabia') {
+        this.currentRace.Circuit.Location.lat = '21.631901268770623'
+        this.currentRace.Circuit.Location.long= '39.10477886251676'
+      };
       this.setGeneric('flagURL', this.allCountries[country].flags.svg);
     },
 
