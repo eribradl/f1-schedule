@@ -52,7 +52,7 @@ export default {
       nextRace: {},
       currentRace: {},
       raceNum: 0,
-      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       center: [],
       zoom: 13,
       countryInfo: {},
