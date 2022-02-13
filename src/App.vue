@@ -11,11 +11,10 @@
         <button class = "ph-button ph-btn-blue" v-on:click="incrementRaceNum()" type="button">Next</button>
       </div>
       <div class="flag-wrap" style="height:25%">
-        <img v-bind:src="flagURL" class="image" style="height:75%" v-if="typeof flagURL != 'undefined'"/>
+        <img v-bind:src="flagURL" class="image" style="height:75%" v-if="flagURL"/>
       </div>
-      <div id = "map" class = "mapContainer" v-if="typeof currentRace != 'undefined'" style="height: 50%; width: 50% margin: 0 auto;" >
-        <l-map :options = "elevation_options"
-          :center="[currentRace.Circuit.Location.lat, currentRace.Circuit.Location.long]"
+      <div id = "map" class = "mapContainer" v-if="flagURL" style="height: 50%; width: 50% margin: 0 auto;" >
+        <l-map :center="center"
           :zoom="zoom"
           class="map"
           ref="map"
@@ -57,29 +56,22 @@ export default {
       center: [],
       zoom: 13,
       countryInfo: {},
-      image: { backgroundImage: "url(https://www.formula1.com/content/dam/fom-website/2018-redesign-assets/Racehub%20header%20images%2016x9/Bahrain.jpg.transform/9col/image.jpg)"}
+      flagURL: "",
     }
   },
   mounted:async function(){
-    const raceNum = this.raceNum;
     const allRaces = await this.getAllRaces();
     const allCountries = await this.getAllCountries(allRaces);
-    const currentRace = await allRaces.MRData.RaceTable.Races[raceNum];
-    const country = 
     this.setGeneric('allRaces', allRaces);
     this.setGeneric('allCountries', allCountries);
-    this.setGeneric('currentRace', currentRace);
-    this.setGeneric('countryInfo', allCountries[currentRace.Circuit.Location.country]);
-
-    this.setGeneric('flagURL', allCountries[currentRace.Circuit.Location.country].flags.svg);
     this.setGeneric('geo', JSON.parse(geoJson));
+    this.updateValues()
     let map;
   },
   methods: {
 
     incrementRaceNum() {
       if (parseInt(this.raceNum) < 22) {
-        console.log("in increment")
         this.raceNum+=1;
         this.updateValues();
       }
@@ -87,7 +79,6 @@ export default {
 
     decrementRaceNum() {
       if (parseInt(this.raceNum) > 0) {
-        console.log("in decrement")
         this.raceNum-=1;
         this.updateValues();
       }
@@ -108,6 +99,7 @@ export default {
         this.currentRace.Circuit.Location.lat = '21.631901268770623'
         this.currentRace.Circuit.Location.long= '39.10477886251676'
       };
+      this.setGeneric('center', [this.currentRace.Circuit.Location.lat, this.currentRace.Circuit.Location.long]);
       this.setGeneric('flagURL', this.allCountries[country].flags.svg);
     },
 
