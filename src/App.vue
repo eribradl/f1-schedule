@@ -3,15 +3,14 @@
     <main>
       <div class="location-box" v-if="currentRace != {}">
         <div class="location">{{ currentRace.raceName }}</div>
-        <div class="date">{{ currentRace.date }}</div>
-        <div class="time">{{ currentRace.time }}</div>
+        <div class="date" v-if="localTime">{{ localTime }}</div>
       </div>
       <div class ="flex-parent jc-center">
         <button class = "margin-right ph-button ph-btn-blue" v-on:click="decrementRaceNum()" type="button">Previous</button>
         <button class = "ph-button ph-btn-blue" v-on:click="incrementRaceNum()" type="button">Next</button>
       </div>
-      <div class="flag-wrap" style="height:25%">
-        <img v-bind:src="flagURL" class="image" style="height:75%" v-if="flagURL"/>
+      <div class="flag-wrap">
+        <img v-bind:src="flagURL" class="image" v-if="flagURL"/>
       </div>
       <div id = "map" class = "mapContainer" v-if="flagURL" style="height: 50%; width: 50% margin: 0 auto;" >
         <l-map :center="center"
@@ -35,13 +34,16 @@
 import { LMap, LTileLayer, LGeoJson } from 'vue2-leaflet';
 import 'leaflet/dist/leaflet.css';
 import geoJson from './assets/circuits/f1-circuits.geojson'
+import VueGridLayout from 'vue-grid-layout';
 
 export default {
   name: 'App',
   components : {
     LMap,
     LTileLayer, 
-    LGeoJson
+    LGeoJson,
+    GridLayout: VueGridLayout.GridLayout,
+    GridItem: VueGridLayout.GridItem
   },
   data() {
     return {
@@ -57,6 +59,8 @@ export default {
       zoom: 13,
       countryInfo: {},
       flagURL: "",
+      localTime: "",
+      layout: []
     }
   },
   mounted:async function(){
@@ -87,6 +91,11 @@ export default {
     updateValues() {
       this.setGeneric('currentRace', this.allRaces.MRData.RaceTable.Races[this.raceNum]);
       let country = this.currentRace.Circuit.Location.country;
+      let dateString = `${this.currentRace.date} ${this.currentRace.time}`
+      const locTime = new Date(dateString.replace(" ", "T"));
+
+      this.setGeneric('localTime', locTime.toString());
+      this.setGeneric('layout', [{"x":4,"y":0,"w":4,"h":2,"i":this.currentRace.raceName},{"x":5,"y":0,"w":2,"h":2,"i":locTime}])
       if (country == 'UK') {
         country = 'United Kingdom';
       } else if (country == 'USA') {
@@ -95,10 +104,6 @@ export default {
         country = 'United Arab Emirates';
       }
       this.setGeneric('countryInfo', this.allCountries[country]);
-      if (country == 'Saudi Arabia') {
-        this.currentRace.Circuit.Location.lat = '21.631901268770623'
-        this.currentRace.Circuit.Location.long= '39.10477886251676'
-      };
       this.setGeneric('center', [this.currentRace.Circuit.Location.lat, this.currentRace.Circuit.Location.long]);
       this.setGeneric('flagURL', this.allCountries[country].flags.svg);
     },
@@ -208,7 +213,7 @@ main {
 
 .location-box .location {
   color: #FFF;
-  font-size: 28px;
+  font-size: 4vh;
   font-weight: 500;
   text-align: center;
   text-shadow: 1px 3px rgba(0, 0, 0, 0.25);
@@ -216,7 +221,7 @@ main {
 
 .location-box .date, .location-box .time {
   color: #FFF;
-  font-size: 20px;
+  font-size: 2vh;
   font-weight: 300;
   font-style: italic;
   text-align: center;
@@ -252,7 +257,6 @@ button.margin-right {
     color: #FFFFFF;	   
     border-radius: 6px;
     cursor: pointer;
-    display: inline-block;
     font-style: normal;
     overflow: hidden;
     text-align: center;
@@ -262,8 +266,10 @@ button.margin-right {
     white-space: nowrap;	
     font-family: "Gotham Rounded A","Gotham Rounded B",Helvetica,Arial,sans-serif;
     font-weight: 700;	
-    padding: 17px 37px 16px;
-    font-size: 18px;
+    height: 6vh;
+    width: 24vw;
+    font-size: 2vh;
+    max-width: 100%;
 	
 }
 /*Blue
@@ -281,7 +287,7 @@ button.margin-right {
 
 .flag-wrap {
   position: absolute;
-  top: 42%;
+  top: 37%;
   left: 50%;
   transform: translate(-50%, -50%);
 }
@@ -289,7 +295,7 @@ button.margin-right {
 .flag-wrap .image{
   margin: 0 auto;
   display: inline-block;
-  height: 125px;
+  height: 20vh;
 }
 
 .mapContainer {
