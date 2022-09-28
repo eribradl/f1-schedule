@@ -1,16 +1,34 @@
 <template>
   <div id="app">
     <main>
+      <div class="flag-wrap jc-center">
+        <img v-bind:src="flagURL" class="image" v-if="flagURL"/>
+      </div>
       <div class="location-box" v-if="currentRace != {}">
         <div class="location">{{ currentRace.raceName }}</div>
-        <div class="date" v-if="localTime">{{ localTime }}</div>
+        <div class="date" v-if="localTime">
+          <ol>
+            <li>
+              {{ practice1 }}
+            </li>
+            <li>
+              {{ session2 }}
+            </li>
+            <li>
+              {{ session3 }}
+            </li>
+            <li>
+              {{ session4 }}
+            </li>
+            <li>
+              {{ localTime }}
+            </li>
+          </ol>
+        </div>
       </div>
       <div class ="flex-parent jc-center">
         <button class = "margin-right ph-button ph-btn-blue" v-on:click="decrementRaceNum()" type="button">Previous</button>
         <button class = "ph-button ph-btn-blue" v-on:click="incrementRaceNum()" type="button">Next</button>
-      </div>
-      <div class="flag-wrap">
-        <img v-bind:src="flagURL" class="image" v-if="flagURL"/>
       </div>
       <div id = "map" class = "mapContainer" v-if="flagURL" style="height: 50%; width: 50% margin: 0 auto;" >
         <l-map :center="center"
@@ -48,6 +66,7 @@ export default {
   data() {
     return {
       f1_allRace_url: "https://ergast.com/api/f1/2022.json",
+      f1_nextRace_url: "https://ergast.com/api/f1/current/next.json",
       country_url_base: "https://restcountries.com/v3.1/name/",
       query: "",
       geo: {},
@@ -64,18 +83,26 @@ export default {
     }
   },
   mounted:async function(){
+    const nextRace = await this.getNextRace();
     const allRaces = await this.getAllRaces();
-    const allCountries = await this.getAllCountries(allRaces);
     this.setGeneric('allRaces', allRaces);
-    this.setGeneric('allCountries', allCountries);
+    this.setGeneric('raceNum', nextRace.MRData.RaceTable.Races[0].round - 1);
     this.setGeneric('geo', JSON.parse(geoJson));
     this.updateValues()
     let map;
   },
   methods: {
 
+    async getCountryInfo(country) {
+      if (country == "Netherlands") {
+        country = "Holland";
+      }
+      const nextCountryInfo = await this.fetchCountry(country);
+      this.countryInfo = nextCountryInfo;
+    },
+
     incrementRaceNum() {
-      if (parseInt(this.raceNum) < 22) {
+      if (parseInt(this.raceNum) < 21) {
         this.raceNum+=1;
         this.updateValues();
       }
@@ -88,59 +115,96 @@ export default {
       }
     },
     
-    updateValues() {
+    async updateValues() {
       this.setGeneric('currentRace', this.allRaces.MRData.RaceTable.Races[this.raceNum]);
       let country = this.currentRace.Circuit.Location.country;
+      if (country == "UK") {
+        country = "Great Britain";
+      }
+      console.log(country);
+      await this.getCountryInfo(country);
+      let secondSessionDate;
+      let thirdSessionDate;
+      let fourthSessionDate;
       let dateString = `${this.currentRace.date} ${this.currentRace.time}`
+      let practice1Date = `${this.currentRace.FirstPractice.date} ${this.currentRace.FirstPractice.time}`
+      let practice2Date = `${this.currentRace.SecondPractice.date} ${this.currentRace.SecondPractice.time}`
+      let practice3Date = `${this.currentRace.ThirdPractice.date} ${this.currentRace.ThirdPractice.time}`
+      let qualifyingDate = `${this.currentRace.Qualifying.date} ${this.currentRace.Qualifying.time}`
+      if (this.currentRace.hasOwnProperty("Sprint")) {
+        secondSessionDate = `Qualifying: ${this.currentRace.Qualifying.date} ${this.currentRace.Qualifying.time}`;
+        thirdSessionDate = `Practice 2: ${this.currentRace.SecondPractice.date} ${this.currentRace.SecondPractice.time}`;
+        fourthSessionDate = `Sprint: ${this.currentRace.Sprint.date} ${this.currentRace.Sprint.time}`
+        const secondSessionTime = new Date(secondSessionDate.replace(" ", "T"));
+        const thirdSessionTime = new Date(thirdSessionDate.replace(" ", "T"));
+        const fourthSessionTime = new Date(fourthSessionDate.replace(" ", "T"));
+        this.setGeneric('session2', "Qualifying: " + secondSessionTime.toString());
+        this.setGeneric('session3', "Practice 2: " + thirdSessionTime.toString());
+        this.setGeneric('session4', "Sprint: " + fourthSessionTime.toString());
+      } else {
+        secondSessionDate = `${this.currentRace.SecondPractice.date} ${this.currentRace.SecondPractice.time}`;
+        thirdSessionDate = `${this.currentRace.ThirdPractice.date} ${this.currentRace.ThirdPractice.time}`;
+        fourthSessionDate = `${this.currentRace.Qualifying.date} ${this.currentRace.Qualifying.time}`;
+        const secondSessionTime = new Date(secondSessionDate.replace(" ", "T"));
+        const thirdSessionTime = new Date(thirdSessionDate.replace(" ", "T"));
+        const fourthSessionTime = new Date(fourthSessionDate.replace(" ", "T"));
+        this.setGeneric('session2', "Practice 2: " + secondSessionTime.toString());
+        this.setGeneric('session3', "Practice 3: " + thirdSessionTime.toString());
+        this.setGeneric('session4', "Qualifying: " + fourthSessionTime.toString());
+        console.log(secondSessionTime.toString());
+      }
       const locTime = new Date(dateString.replace(" ", "T"));
+      const practice1Time = new Date(practice1Date.replace(" ", "T"));
+      const secondSessionTime = new Date(secondSessionDate.replace(" ", "T"));
+      const thirdSessionTime = new Date(thirdSessionDate.replace(" ", "T"));
+      const fourthSessionTime = new Date(fourthSessionDate.replace(" ", "T"));
 
-      this.setGeneric('localTime', locTime.toString());
+      this.setGeneric('localTime', "Race: " + locTime.toString());
+      this.setGeneric('practice1', "Practice 1: " + practice1Time.toString());
+
       this.setGeneric('layout', [{"x":4,"y":0,"w":4,"h":2,"i":this.currentRace.raceName},{"x":5,"y":0,"w":2,"h":2,"i":locTime}])
-      if (country == 'UK') {
-        country = 'United Kingdom';
-      } else if (country == 'USA') {
-        country = 'United States';
-      } else if (country == 'UAE') {
-        country = 'United Arab Emirates';
-      }
-      this.setGeneric('countryInfo', this.allCountries[country]);
+
+      //this.setGeneric('countryInfo', this.allCountries[country]);
       this.setGeneric('center', [this.currentRace.Circuit.Location.lat, this.currentRace.Circuit.Location.long]);
-      this.setGeneric('flagURL', this.allCountries[country].flags.svg);
+      this.setGeneric('flagURL', this.countryInfo[0].flags.svg);
     },
 
-    async getAllCountries (races) {
-      let allCountries = [];
-      let outputJson = {}
-      for (let i = 0; i < races.MRData.RaceTable.Races.length; i++) {
-        const country = races.MRData.RaceTable.Races[i].Circuit.Location.country;
-        if (country == 'UK') {
-          country = 'United Kingdom';
-        } else if (country == 'USA') {
-          country = 'United States';
-        } else if (country == 'UAE') {
-          country = 'United Arab Emirates';
-        };
-        allCountries.push(country);
-      }
-      const countryResp = await fetch(`${this.country_url_base}${allCountries.join(", ")}`);
-      const countryJson = await countryResp.json();
-      for (let j = 0; j < countryJson.length; j++) {
-        outputJson[countryJson[j].name.common] = countryJson[j];
-      }
-      return outputJson;
-    },
+    // async getAllCountries (races) {
+    //   let allCountries = [];
+    //   let outputJson = {}
+    //   for (let i = 0; i < races.MRData.RaceTable.Races.length; i++) {
+    //     const country = races.MRData.RaceTable.Races[i].Circuit.Location.country;
+    //     allCountries.push(country);
+    //   }
+    //   const countryResp = await fetch(`${this.country_url_base}${allCountries.join(", ")}`);
+    //   const countryJson = await countryResp.json();
+    //   for (let j = 0; j < countryJson.length; j++) {
+    //     outputJson[countryJson[j].name.common] = countryJson[j];
+    //   }
+    //   return outputJson;
+    // },
 
     async getGeo (fileName) {
       this.geo = (JSON.parse(require(fileName)));
     },
     
     async fetchCountry (country) {
+      if (country =="UK") {
+        country = "Great Britain";
+      }
       const countryResp = await fetch(`${this.country_url_base}${country}`);
       const countryJson = await countryResp.json();
       return countryJson;
     },
+
     async getAllRaces() {
       const response = await fetch(this.f1_allRace_url);
+      const parsedResponse = await response.json();
+      return parsedResponse;
+    },
+
+    async getNextRace() {
+      const response = await fetch(this.f1_nextRace_url);
       const parsedResponse = await response.json();
       return parsedResponse;
     },
@@ -209,6 +273,10 @@ main {
   padding: 25px;
 
   background-image:  linear-gradient(to top, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.75));
+}
+
+ol li{
+  list-style: none;
 }
 
 .location-box .location {
@@ -286,15 +354,16 @@ button.margin-right {
 }
 
 .flag-wrap {
-  position: absolute;
+  /* position: absolute; */
+  margin: auto;
   top: 37%;
   left: 50%;
-  transform: translate(-50%, -50%);
+  /* transform: translate(-50%, -50%); */
 }
 
 .flag-wrap .image{
   margin: 0 auto;
-  display: inline-block;
+  display: block;
   height: 20vh;
 }
 
